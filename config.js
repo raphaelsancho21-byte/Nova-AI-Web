@@ -1,2 +1,2 @@
-// A URL do Worker é pública, mas NUNCA coloque aqui tokens do GitHub.
-window.NOVA_GATEWAY_URL = 'https://SEU-WORKER.workers.dev';
+// Endereço público do gateway. NÃO coloque token do GitHub ou chave privada aqui.
+window.NOVA_GATEWAY_URL = 'https://nova-ai-gateway.raphaelsancho26.workers.dev';
