@@ -1,0 +1,25 @@
+'use strict';
+const $=id=>document.getElementById(id);
+const STORE='nova_ai_github_chats_v1';
+const state={chats:[],current:null,busy:false};
+let secret='';
+const gateway=()=>String(window.NOVA_GATEWAY_URL||'').replace(/\/$/,'');
+function uid(){return crypto.randomUUID()}
+function save(){localStorage.setItem(STORE,JSON.stringify({chats:state.chats.slice(0,50),current:state.current}))}
+function load(){try{const a=JSON.parse(localStorage.getItem(STORE)||'{}');state.chats=Array.isArray(a.chats)?a.chats:[];state.current=a.current||state.chats[0]?.id||null}catch{state.chats=[]}}
+function current(){return state.chats.find(c=>c.id===state.current)}
+function makeChat(){if(state.busy)return;const c={id:uid(),title:'Nova conversa',messages:[],updated:Date.now()};state.chats.unshift(c);state.current=c.id;save();render();$('prompt').focus()}
+function render(){renderChats();renderMessages()}
+function renderChats(){const root=$('chats');root.replaceChildren();for(const c of state.chats){const el=document.createElement('div');el.className='chat'+(c.id===state.current?' active':'');const b=document.createElement('button');b.className='select';b.textContent=c.title;b.onclick=()=>{if(state.busy)return;state.current=c.id;save();render();$('sidebar').classList.remove('open')};const d=document.createElement('button');d.className='delete';d.title='Excluir conversa';d.textContent='×';d.onclick=()=>{if(state.busy||!confirm('Excluir conversa?'))return;state.chats=state.chats.filter(x=>x.id!==c.id);if(state.current===c.id)state.current=state.chats[0]?.id||null;save();render()};el.append(b,d);root.append(el)}}
+function addMessage(root,m){const div=document.createElement('article');div.className='message '+m.role;const avatar=document.createElement('div');avatar.className='avatar';avatar.textContent=m.role==='user'?'●':'✦';const bubble=document.createElement('div');bubble.className='bubble';bubble.textContent=m.content;div.append(avatar,bubble);root.append(div)}
+function renderMessages(){const c=current();$('welcome').hidden=!!c?.messages?.length;const root=$('messages');root.replaceChildren();for(const m of c?.messages||[])addMessage(root,m);$('conversation').scrollTop=$('conversation').scrollHeight}
+function status(s){$('status').textContent=s}
+async function api(path,options={}){if(!gateway()||gateway().includes('SEU-WORKER'))throw Error('Configure frontend/config.js com a URL do Worker');if(!secret)throw Error('Clique em Acesso e informe sua chave privada (não é token do GitHub)');const response=await fetch(gateway()+path,{...options,headers:{'Content-Type':'application/json','X-Nova-Key':secret,...options.headers},cache:'no-store'});let body={};try{body=await response.json()}catch{}if(!response.ok)throw Error(body.error||'Erro HTTP '+response.status);return body}
+function wait(ms){return new Promise(resolve=>setTimeout(resolve,ms))}
+async function send(event){event.preventDefault();if(state.busy)return;const prompt=$('prompt').value.trim();if(!prompt)return;let c=current();if(!c){makeChat();c=current()}c.messages.push({role:'user',content:prompt});if(c.title==='Nova conversa')c.title=prompt.slice(0,42);c.updated=Date.now();$('prompt').value='';state.busy=true;$('send').disabled=true;save();render();try{status('Enviando solicitação...');const r=await api('/api/chat',{method:'POST',body:JSON.stringify({messages:c.messages.slice(-10)})});status('Aguardando GitHub Actions...');let answer=null;for(let i=0;i<100;i++){await wait(5000);const result=await api('/api/status?id='+encodeURIComponent(r.request_id));if(result.status==='done'){answer=result.reply;break}if(result.status==='error')throw Error(result.error||'Erro no workflow');status(result.status==='running'?'Nova gerando resposta...':'Nova na fila do GitHub...')}if(!answer)throw Error('Tempo de espera excedido. Consulte o GitHub Actions.');c.messages.push({role:'assistant',content:answer});c.updated=Date.now();save();render();status('Resposta concluída')}catch(e){status('Falha: '+e.message);alert('Nova AI: '+e.message)}finally{state.busy=false;$('send').disabled=false}}
+$('composer').addEventListener('submit',send);$('newChat').onclick=makeChat;
+$('keyButton').onclick=()=>{const key=prompt('Chave de acesso ao gateway (NÃO é token do GitHub):');if(key!==null){secret=key.trim();status(secret?'Chave configurada nesta aba':'Sem chave')}};
+$('menu').onclick=()=>$('sidebar').classList.toggle('open');
+$('exportChats').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({chats:state.chats,current:state.current},null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='nova-ai-conversas.json';a.click();URL.revokeObjectURL(url)};
+$('importChats').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const data=JSON.parse(await f.text());if(!Array.isArray(data.chats))throw Error('Arquivo inválido');state.chats=data.chats.filter(c=>c&&Array.isArray(c.messages)).slice(0,50);state.current=state.chats[0]?.id||null;save();render()}catch(err){alert(err.message)}};
+load();render();
