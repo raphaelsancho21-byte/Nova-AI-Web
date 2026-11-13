@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101612">
+  <title>Nova AI</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app">
+    <aside id="sidebar" class="sidebar">
+      <div class="brand">✦ <strong>Nova AI</strong><span>Experimental</span></div>
+      <button id="newChat" class="new">＋ Nova conversa</button>
+      <nav id="chats" aria-label="Histórico de conversas"></nav>
+      <div class="side-bottom">
+        <button id="exportChats">Exportar conversas</button>
+        <label class="import-label">Importar conversas<input id="importChats" type="file" accept="application/json" hidden></label>
+      </div>
+    </aside>
+    <main class="main">
+      <header>
+        <button id="menu" class="mobile-only" aria-label="Menu">☰</button>
+        <div><strong>Nova AI</strong><small id="status">Modo experimental</small></div>
+        <button id="keyButton" title="Configurar chave de acesso">🔒 Acesso</button>
+      </header>
+      <section id="conversation" class="conversation">
+        <div id="welcome" class="welcome"><span class="symbol">✦</span><h1>Como posso ajudar?</h1><p>Nova AI com Qwen3-4B em execução temporária no GitHub Actions.</p></div>
+        <div id="messages" class="messages" aria-live="polite"></div>
+      </section>
+      <form id="composer" class="composer">
+        <textarea id="prompt" rows="2" placeholder="Pergunte à Nova..." maxlength="6000" required></textarea>
+        <div class="actions"><small>Resposta pode demorar vários minutos • Sem streaming</small><button id="send" type="submit">Enviar ↗</button></div>
+      </form>
+    </main>
+  </div>
+  <script src="./config.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
